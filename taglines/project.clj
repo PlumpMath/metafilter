@@ -8,12 +8,14 @@
                  [clojure-opennlp "0.3.2"]
                  [clojurewerkz/crawlista "1.0.0-alpha18"]
                  [enlive "1.1.5"]
-                 [org.clojure/clojure "1.5.1"]]
+                 [org.clojure/clojure "1.5.1"]
+                 [org.commoncrawl/libcommoncrawl "1.1"]]
   :profiles {:provided
              {:dependencies [[org.apache.hadoop/hadoop-core "1.1.2"]]}
              :dev
              {:dependencies [[midje "1.5.1"]]
               :plugins [[lein-midje "3.0.1"]]}}
+  :java-source-paths ["src/java"]
   :jar-name "metafilter-taglines.jar"
   :uberjar-name "metafilter-taglines-standalone.jar"
   :aot [com.lemonodor.metafilter.taglines])

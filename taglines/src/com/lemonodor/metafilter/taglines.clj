@@ -1,5 +1,6 @@
 (ns com.lemonodor.metafilter.taglines
   (:require [cascalog.api :refer :all]
+            [cascalog.cascading.tap :as tap]
             [cascalog.logic.def :as def]
             [cascalog.logic.ops :as c]
             [cascalog.more-taps :refer [hfs-wrtseqfile]]
@@ -8,8 +9,15 @@
             [clojurewerkz.crawlista.extraction.content :as content]
             [net.cgrand.enlive-html :as html]
             [opennlp.nlp :as opennlp])
-  (:import (org.apache.commons.httpclient URI)
-           (org.apache.hadoop.io Text)))
+  (:import (com.lemonodor.cascading.scheme ARC)
+           (org.apache.commons.httpclient URI)
+           (org.apache.hadoop.io BytesWritable Text)))
+
+
+(defn hfs-arc
+  [path & opts]
+  (let [scheme (ARC.)]
+    (apply tap/hfs-tap scheme path opts)))
 
 
 ;; Obtained from:
@@ -69,8 +77,7 @@
 
 
 (defn summarize [html]
-  (println "WOOO" (subs (str html) 0 (min 10 (dec (count (str html))))))
-  html)
+  (str html))
 
 
 (defn is-metafilter? [^String hostname]
@@ -117,27 +124,24 @@
   (metafilter-taglines html))
 
 
-(defn query-taglines
-  "Counts site URLs from the metadata corpus grouped by TLD of each URL."
-  [text-tap trap-tap]
-  (<- [?tagline ?count]
-      (text-tap :> ?url ?html)
-      (parse-hostname ?url :> ?host)
-      (is-metafilter? ?host)
-      (get-comments :< ?html :> ?comment)
-      (get-metafilter-taglines :< ?comment :> ?tagline)
-      (c/count :> ?count)
-      (:trap trap-tap)))
-
 ;; (defn query-taglines
 ;;   "Counts site URLs from the metadata corpus grouped by TLD of each URL."
 ;;   [text-tap trap-tap]
-;;   (<- [?count ?host]
+;;   (<- [?tagline ?count]
 ;;       (text-tap :> ?url ?html)
-;;       (summarize ?html)
 ;;       (parse-hostname ?url :> ?host)
+;;       (is-metafilter? ?host)
+;;       (get-comments :< ?html :> ?comment)
+;;       (get-metafilter-taglines :< ?comment :> ?tagline)
 ;;       (c/count :> ?count)
 ;;       (:trap trap-tap)))
+
+(defn query-taglines
+  "Counts site URLs from the metadata corpus grouped by TLD of each URL."
+  [text-tap trap-tap]
+  (<- [?url ?html]
+      (text-tap :> ?url ?html)
+      (:trap trap-tap)))
 
 
 (defmain MetafilterTaglinesExe
