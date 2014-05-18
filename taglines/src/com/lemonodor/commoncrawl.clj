@@ -25,7 +25,8 @@
 ;; Obtained from:
 ;; https://s3.amazonaws.com/aws-publicdatasets/common-crawl/parse-output/valid_segments.txt
 (def valid-segments
-  [1346823845675 1346823846036 1346823846039 1346823846110 1346823846125
+  (sorted-set
+   1346823845675 1346823846036 1346823846039 1346823846110 1346823846125
    1346823846150 1346823846176 1346876860445 1346876860454 1346876860467
    1346876860493 1346876860565 1346876860567 1346876860596 1346876860609
    1346876860611 1346876860614 1346876860648 1346876860765 1346876860767
@@ -36,7 +37,7 @@
    1346981172142 1346981172155 1346981172184 1346981172186 1346981172229
    1346981172231 1346981172234 1346981172239 1346981172250 1346981172253
    1346981172255 1346981172258 1346981172261 1346981172264 1346981172266
-   1346981172268])
+   1346981172268))
 
 (defn ^String text-path
   "Produces the glob of paths to text files organized according to
@@ -44,10 +45,12 @@
    Here's an example (assuming valid segments are 1, 2 and 3):
    (text-path 's3://path/to/commoncrawl/segments')
    => 's3://path/to/commoncrawl/segments/{1,2,3}/textData*'"
-  [prefix]
-  (->> valid-segments
-       (string/join ",")
-       (format "%s/{%s}/textData*" prefix)))
+  ([prefix segments]
+     (->> segments
+          (string/join ",")
+          (format "%s/{%s}/textData*" prefix)))
+  ([prefix]
+     (text-path prefix valid-segments)))
 
 
 (defn hfs-arc-tap
@@ -66,13 +69,6 @@
 (defn item-text [^ArcFileItem item]
   (let [^ImmutableBuffer content (.getContent item)]
     (String. (.getReadOnlyBytes content) 0 (.getCount content))))
-
-;; ByteArrayInputStream inputStream = new ByteArrayInputStream(
-;;           value.getContent().getReadOnlyBytes(), 0,
-;;           value.getContent().getCount());
-;;       // Converts InputStream to a String.
-;;       String content = new Scanner(inputStream).useDelimiter("\\A").next();
-
 
 (defn bytes-to-string [^BytesWritable bytes]
   (String. (.getBytes bytes) "UTF8"))

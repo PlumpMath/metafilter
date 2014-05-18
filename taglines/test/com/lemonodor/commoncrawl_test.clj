@@ -20,8 +20,8 @@
 
 
 
-(deftest commoncrawl-tests
-  (fact "paths"
+(deftest path-tests
+  (fact "default paths"
     (cc/text-path
      "s3://aws-publicdatasets/common-crawl/parse-output/segment") =>
      (str
@@ -38,13 +38,18 @@
       "1346981172231,1346981172234,1346981172239,1346981172250,1346981172253,"
       "1346981172255,1346981172258,1346981172261,1346981172264,1346981172266,"
       "1346981172268}/textData*"))
+  (fact "specified paths"
+    (cc/text-path "some-prefix" [1 2 3]) =>
+    "some-prefix/{1,2,3}/textData*"))
+
+(deftest arc-tests
   (fact "ARC tap"
-    (<- [?url ?text]
+    (<- [?url]
         ((c/first-n
-          (cc/hfs-arc-item-tap (io/file (io/resource "1262847572760_10.arc.gz")))
-          3)
-         ?url ?arcitem)
-        (cc/item-text :< ?arcitem :> ?text)
-        )
+          (cc/hfs-arc-item-tap
+           (io/file (io/resource "1262847572760_10.arc.gz")))
+          2)
+         ?url ?arcitem))
     =>
-    (produces [["Proin" "hendrerit" "tincidunt pellentesque"]])))
+    (produces
+     [["http://1015jamz.com/"] ["http://1015jamz.com/CNet-com-Extras-/3602304"]])))
