@@ -7,17 +7,14 @@
             [clojure.java.io :as io]
             [clojure.string :as string]
             [clojurewerkz.crawlista.extraction.content :as content]
+            [com.lemonodor.commoncrawl :as cc]
             [net.cgrand.enlive-html :as html]
             [opennlp.nlp :as opennlp])
-  (:import (com.lemonodor.cascading.scheme ARC)
-           (org.apache.commons.httpclient URI)
+  (:import (org.apache.commons.httpclient URI)
            (org.apache.hadoop.io BytesWritable Text)))
 
 
-(defn hfs-arc
-  [path & opts]
-  (let [scheme (ARC.)]
-    (apply tap/hfs-tap scheme path opts)))
+
 
 
 ;; Obtained from:
@@ -56,18 +53,6 @@
    ;; 1346876860840
    ;; 1346876860843
    ;; 1346876860877])
-
-
-(defn ^String text-path
-  "Produces the glob of paths to text files organized
-   according to CommonCrawl docs: http://tinyurl.com/common-crawl-about-dataset
-   Here's an example (assuming valid segments are 1, 2 and 3):
-   (text-path 's3://path/to/commoncrawl/segments')
-   => 's3://path/to/commoncrawl/segments/{1,2,3}/textData*'"
-  [prefix]
-  (->> valid-segments
-       (string/join ",")
-       (format "%s/{%s}/textData*" prefix)))
 
 
 (defn ^String parse-hostname
@@ -143,11 +128,10 @@
       (text-tap :> ?url ?html)
       (:trap trap-tap)))
 
-
 (defmain MetafilterTaglinesExe
   "Defines 'main' method that will execute our query."
   [prefix output-dir]
-  (let [text-tap (hfs-wrtseqfile (text-path prefix)
+  (let [text-tap (hfs-wrtseqfile (cc/text-path prefix)
                                  Text Text
                                  :outfields ["key" "value"])
         trap-tap (hfs-seqfile (str output-dir ".trap"))]

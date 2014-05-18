@@ -10,11 +10,6 @@
 
 (deftest taglines-tests
 
-  (fact "paths"
-    (taglines/text-path
-     "s3://aws-publicdatasets/common-crawl/parse-output/segment") =>
-     "123")
-
   (fact "Hostname parsing"
     (-> "http://zorg.me/give/me/the/stones?q=foo bar" Text. taglines/parse-hostname) => "zorg.me"
     (-> "" Text. taglines/parse-hostname) => ""
@@ -49,10 +44,11 @@
              (slurp (io/resource "Can-we-do-that-there-Be-that-here-Check-Equaldex.html")))]
            [(Text. "http://www.metafilter.com/123/woo")
             (Text. (slurp (io/resource "We-dare-to-be-ourselves.html")))]]]
-      (fact "the TLD query works all right"
-        (taglines/query-taglines metadata-tap nothing-trapped) =>
-        (produces
-         [["MetaFilter: ruining it with unseemly jackin-it motions." 1]
-          ["MetaFilter: unnecessary noodle fuck" 1]
-          ["Metafilter: Gay marriage legal." 1]
-          ["Metafilter: fucking terrible (and probably terrible for fucking, too.)" 2]])))))
+      ;; (fact "the TLD query works all right"
+      ;;   (taglines/query-taglines metadata-tap nothing-trapped) =>
+      ;;   (produces
+      ;;    [["MetaFilter: ruining it with unseemly jackin-it motions." 1]
+      ;;     ["MetaFilter: unnecessary noodle fuck" 1]
+      ;;     ["Metafilter: Gay marriage legal." 1]
+      ;;     ["Metafilter: fucking terrible (and probably terrible for fucking, too.)" 2]]))
+      )))
