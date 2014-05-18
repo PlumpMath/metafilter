@@ -48,8 +48,12 @@
         ((c/first-n
           (cc/hfs-arc-item-tap
            (io/file (io/resource "1262847572760_10.arc.gz")))
-          2)
+          5)
          ?url ?arcitem))
     =>
     (produces
-     [["http://1015jamz.com/"] ["http://1015jamz.com/CNet-com-Extras-/3602304"]])))
+     [["http://1015jamz.com/"]
+      ["http://1015jamz.com/CNet-com-Extras-/3602304"]
+      ["http://1015jamz.com/High-School-Invasion/2179263"]
+      ["http://1015jamz.com/Jasmine/4118295"]
+      ["http://1015jamz.com/Suga-Bear/2129607"]])))
