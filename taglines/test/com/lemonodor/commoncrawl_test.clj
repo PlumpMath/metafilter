@@ -3,10 +3,22 @@
             [cascalog.logic.ops :as c]
             [cascalog.logic.testing :refer :all]
             [clojure.java.io :as io]
+            [clojure.pprint :as pprint]
+            [clojure.reflect :as reflect]
             [clojure.test :refer :all]
             [com.lemonodor.commoncrawl :as cc]
             [midje.cascalog :refer :all]
             [midje.sweet :refer :all]))
+
+
+(defn print-methods [item]
+  (pprint/print-table
+   (sort-by
+    :name
+    (filter :exception-types (:members (reflect/reflect item)))))
+  true)
+
+
 
 (deftest commoncrawl-tests
   (fact "paths"
@@ -27,11 +39,12 @@
       "1346981172255,1346981172258,1346981172261,1346981172264,1346981172266,"
       "1346981172268}/textData*"))
   (fact "ARC tap"
-    (<- [?url ?str]
+    (<- [?url ?text]
         ((c/first-n
-          (cc/hfs-arc-tap (io/file (io/resource "1262847572760_10.arc.gz")))
-          1)
-         ?url ?bytes)
-        (cc/bytes-to-string :< ?bytes :> ?str))
+          (cc/hfs-arc-item-tap (io/file (io/resource "1262847572760_10.arc.gz")))
+          3)
+         ?url ?arcitem)
+        (cc/item-text :< ?arcitem :> ?text)
+        )
     =>
     (produces [["Proin" "hendrerit" "tincidunt pellentesque"]])))

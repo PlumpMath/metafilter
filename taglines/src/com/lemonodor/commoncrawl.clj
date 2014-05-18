@@ -1,8 +1,10 @@
 (ns com.lemonodor.commoncrawl
   (:require [cascalog.cascading.tap :as tap]
             [clojure.string :as string])
-  (:import (com.lemonodor.cascading.scheme ARC)
-           (org.apache.hadoop.io BytesWritable)))
+  (:import (com.lemonodor.cascading.scheme ARC ARCItem)
+           (org.apache.hadoop.io BytesWritable)
+           (org.commoncrawl.protocol.shared ArcFileItem)
+           (org.commoncrawl.util.shared ImmutableBuffer)))
 
 
 ;; Discussion about valid segments:
@@ -52,6 +54,24 @@
   [path & opts]
   (let [scheme (ARC.)]
     (apply tap/hfs-tap scheme path opts)))
+
+(defn hfs-arc-item-tap
+  [path & opts]
+  (let [scheme (ARCItem.)]
+    (apply tap/hfs-tap scheme path opts)))
+
+ (defn item-mime-type [^ArcFileItem item]
+   (.getMimeType item))
+
+(defn item-text [^ArcFileItem item]
+  (let [^ImmutableBuffer content (.getContent item)]
+    (String. (.getReadOnlyBytes content) 0 (.getCount content))))
+
+;; ByteArrayInputStream inputStream = new ByteArrayInputStream(
+;;           value.getContent().getReadOnlyBytes(), 0,
+;;           value.getContent().getCount());
+;;       // Converts InputStream to a String.
+;;       String content = new Scanner(inputStream).useDelimiter("\\A").next();
 
 
 (defn bytes-to-string [^BytesWritable bytes]
