@@ -52,6 +52,14 @@
   ([prefix]
      (text-path prefix valid-segments)))
 
+(defn ^String arc-path
+  ([prefix segments]
+     (->> segments
+          (string/join ",")
+          (format "%s/{%s}/*.arc.gz" prefix)))
+  ([prefix]
+     (arc-path prefix valid-segments)))
+
 
 (defn hfs-arc-tap
   [path & opts]
@@ -66,9 +74,12 @@
  (defn item-mime-type [^ArcFileItem item]
    (.getMimeType item))
 
-(defn item-text [^ArcFileItem item]
-  (let [^ImmutableBuffer content (.getContent item)]
-    (String. (.getReadOnlyBytes content) 0 (.getCount content))))
+(defn item-text
+  ([^ArcFileItem item ^String encoding]
+     (let [^ImmutableBuffer content (.getContent item)]
+       (String. (.getReadOnlyBytes content) 0 (.getCount content) encoding)))
+  ([^ArcFileItem item]
+     (item-text item "UTF8")))
 
 (defn bytes-to-string [^BytesWritable bytes]
   (String. (.getBytes bytes) "UTF8"))
