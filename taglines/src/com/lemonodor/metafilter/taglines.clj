@@ -75,11 +75,14 @@
               (string/replace #"<br>" " ")
               (html/html-snippet)
               (html/select [:div.comments]))]
-    (let [c (map (fn [com] (assoc com :content (butlast (:content com)))) s)]
-      (map html/text c))))
+    (->> s
+         (map (fn [com] (assoc com :content (butlast (:content com)))))
+         (map html/text)
+         (map #(string/replace % #"([^\.\!\?])\n\n" "$1.\n")))))
 
 
-(def sentences (opennlp/make-sentence-detector (io/resource "models/en-sent.bin")))
+(def sentences
+  (opennlp/make-sentence-detector (io/resource "models/en-sent.bin")))
 
 
 (def tokenize
@@ -109,31 +112,30 @@
   (metafilter-taglines html))
 
 
-;; (defn query-taglines
-;;   "Counts site URLs from the metadata corpus grouped by TLD of each URL."
-;;   [text-tap trap-tap]
-;;   (<- [?tagline ?count]
-;;       (text-tap :> ?url ?html)
-;;       (parse-hostname ?url :> ?host)
-;;       (is-metafilter? ?host)
-;;       (get-comments :< ?html :> ?comment)
-;;       (get-metafilter-taglines :< ?comment :> ?tagline)
-;;       (c/count :> ?count)
-;;       (:trap trap-tap)))
-
 (defn query-taglines
   "Counts site URLs from the metadata corpus grouped by TLD of each URL."
-  [text-tap trap-tap]
-  (<- [?url ?html]
-      (text-tap :> ?url ?html)
+  [arc-item-tap trap-tap]
+  (<- [?tagline ?count]
+      (arc-item-tap :> ?url ?item)
+      (parse-hostname ?url :> ?host)
+      (is-metafilter? ?host)
+      (cc/item-text :< ?item :> ?html)
+      (get-comments :< ?html :> ?comment)
+      (get-metafilter-taglines :< ?comment :> ?tagline)
+      (c/count :> ?count)
       (:trap trap-tap)))
+
+;; (defn query-taglines
+;;   "Counts site URLs from the metadata corpus grouped by TLD of each URL."
+;;   [arc-item-tap trap-tap]
+;;   (<- [?url ?html]
+;;       (text-tap :> ?url ?html)
+;;       (:trap trap-tap)))
 
 (defmain MetafilterTaglinesExe
   "Defines 'main' method that will execute our query."
   [prefix output-dir]
-  (let [text-tap (hfs-wrtseqfile (cc/text-path prefix)
-                                 Text Text
-                                 :outfields ["key" "value"])
+  (let [arc-item-tap (cc/hfs-arc-item-tap (cc/arc-path prefix valid-segments))
         trap-tap (hfs-seqfile (str output-dir ".trap"))]
     (?- (hfs-textline output-dir)
-        (query-taglines text-tap trap-tap))))
+        (query-taglines arc-item-tap trap-tap))))

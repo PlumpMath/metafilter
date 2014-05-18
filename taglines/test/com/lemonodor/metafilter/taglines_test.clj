@@ -8,15 +8,15 @@
   (:import (org.apache.hadoop.io Text)))
 
 
-(deftest taglines-tests
-
+(deftest hostname-tests
   (fact "Hostname parsing"
     (-> "http://zorg.me/give/me/the/stones?q=foo bar" Text. taglines/parse-hostname) => "zorg.me"
     (-> "" Text. taglines/parse-hostname) => ""
     (-> "()" Text. taglines/parse-hostname) => ""
     (-> "abc" Text. taglines/parse-hostname) => ""
-    (-> "what://wsx/qaz?q=a%20b" Text. taglines/parse-hostname) => "wsx")
+    (-> "what://wsx/qaz?q=a%20b" Text. taglines/parse-hostname) => "wsx"))
 
+(deftest comment-parsing-tests
   (fact "comments parsing"
     (-> "Can-we-do-that-there-Be-that-here-Check-Equaldex.html"
         io/resource
@@ -32,8 +32,22 @@
         io/resource
         slurp
         taglines/get-comments
-        count) => 72)
+        count) => 72))
 
+(deftest taglines-tests
+  (fact "Proper sentence delimiting"
+    (->> "Desperate-Lives-Im-caught-in-the-middle-Desperate-Lives-Uh-huhh.html"
+         io/resource
+         slurp
+         taglines/get-comments
+         (map taglines/metafilter-taglines)
+         (filter seq)) =>
+    [["MetaFilter: time out from reading Wittgenstein, drinking port and playing backgammon"]
+     ["MetaFilter: time out from reading port, drinking backgammon, and playing Wittgenstein."]
+     ["MetaFilter: time out from reading port, drinking backgammon, and playing, Wittgenstein."]
+     ["Metafilter: Can't we have just one nice thing on the internet instead of this shit?"]]))
+
+(deftest query-tests
   (with-expected-sink-sets [nothing-trapped []]
     (let [metadata-tap
           [[(Text. "http://not-metafilter.com/woo")
