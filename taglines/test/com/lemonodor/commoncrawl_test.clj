@@ -56,4 +56,37 @@
       ["http://1015jamz.com/CNet-com-Extras-/3602304"]
       ["http://1015jamz.com/High-School-Invasion/2179263"]
       ["http://1015jamz.com/Jasmine/4118295"]
-      ["http://1015jamz.com/Suga-Bear/2129607"]])))
+      ["http://1015jamz.com/Suga-Bear/2129607"]])
+    (<- [?numurls]
+        ((cc/hfs-arc-item-tap
+          (io/file (io/resource "1262847572760_10.arc.gz")))
+         ?url ?arcitem)
+        (c/count :> ?numurls))
+    =>
+    (produces
+     [[11023]]))
+  (fact "mime-type"
+    (<- [?mimetype ?n]
+        ((cc/hfs-arc-item-tap
+          (io/file (io/resource "1262847572760_10.arc.gz")))
+         ?url ?arcitem)
+        (cc/item-mime-type ?arcitem :> ?mimetype)
+        (c/count :> ?n)
+        )
+    =>
+    (produces
+     [["text/html" 10134]
+      ["application/x-javascript" 304]
+      ["text/plain" 240]
+      ["application/pdf" 172]
+      ["text/xml" 48]
+      ["application/javascript" 44]
+      ["text/javascript" 42]
+      ["text/css" 12]
+      ["application/vnd.ms-excel" 9]
+      ["application/xml" 5]
+      ["application/atom+xml" 4]
+      ["application/rss+xml" 3]
+      ["text/js" 3]
+      ["application/rdf+xml" 2]
+      ["application/opensearchdescription+xml" 1]])))

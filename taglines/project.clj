@@ -9,7 +9,8 @@
                  [clojurewerkz/crawlista "1.0.0-alpha18"]
                  [enlive "1.1.5"]
                  [org.clojure/clojure "1.5.1"]
-                 [org.commoncrawl/libcommoncrawl "1.1"]]
+                 [org.commoncrawl/libcommoncrawl "1.1"
+                  :exclusions [org.slf4j/slf4j-api]]]
   :profiles {:provided
              {:dependencies [[org.apache.hadoop/hadoop-core "1.1.2"]]}
              :dev
