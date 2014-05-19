@@ -10,7 +10,8 @@
 
 (deftest hostname-tests
   (fact "Hostname parsing"
-    (-> "http://zorg.me/give/me/the/stones?q=foo bar" Text. taglines/parse-hostname) => "zorg.me"
+    (-> "http://zorg.me/give/me/the/stones?q=foo bar" Text. taglines/parse-hostname)
+    => "zorg.me"
     (-> "" Text. taglines/parse-hostname) => ""
     (-> "()" Text. taglines/parse-hostname) => ""
     (-> "abc" Text. taglines/parse-hostname) => ""
@@ -21,7 +22,8 @@
     (-> "Can-we-do-that-there-Be-that-here-Check-Equaldex.html"
         io/resource
         slurp
-        taglines/get-comments) =>
+        taglines/get-comments)
+    =>
     (list
      (str "They still list gay marriage as being illegal in Arkansas. "
           "Metafilter: Gay marriage legal. I wonder if it's more of a lag "
@@ -32,7 +34,8 @@
         io/resource
         slurp
         taglines/get-comments
-        count) => 72))
+        count)
+    => 72))
 
 (deftest taglines-tests
   (fact "Proper sentence delimiting"
@@ -41,7 +44,8 @@
          slurp
          taglines/get-comments
          (map taglines/metafilter-taglines)
-         (filter seq)) =>
+         (filter seq))
+    =>
     [["MetaFilter: time out from reading Wittgenstein, drinking port and playing backgammon"]
      ["MetaFilter: time out from reading port, drinking backgammon, and playing Wittgenstein."]
      ["MetaFilter: time out from reading port, drinking backgammon, and playing, Wittgenstein."]
