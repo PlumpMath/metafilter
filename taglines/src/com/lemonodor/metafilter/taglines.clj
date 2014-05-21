@@ -9,9 +9,11 @@
             [clojurewerkz.crawlista.extraction.content :as content]
             [com.lemonodor.commoncrawl :as cc]
             [net.cgrand.enlive-html :as html]
-            [opennlp.nlp :as opennlp])
+            [opennlp.nlp :as opennlp]
+            [me.raynes.fs :as fs])
   (:import (org.apache.commons.httpclient URI)
-           (org.apache.hadoop.io BytesWritable Text)))
+           (org.apache.hadoop.io BytesWritable Text))
+  (:gen-class))
 
 
 
@@ -69,7 +71,8 @@
   (re-find #"www\.metafilter\.com$" hostname))
 
 
-(def/defmapcatfn get-comments [html]
+
+(defn comments [html]
   (let [s (-> html
               str
               (string/replace #"<br>" " ")
@@ -80,6 +83,9 @@
          (map html/text)
          (map #(string/replace % #"([^\.\!\?\"])\n\n" "$1.\n")))))
 
+
+(def/defmapcatfn get-comments [html]
+  (comments html))
 
 (def sentences
   (opennlp/make-sentence-detector (io/resource "models/en-sent.bin")))
@@ -112,11 +118,11 @@
   (metafilter-taglines html))
 
 
-(defn query-taglines
+(defn query-arc-taglines
   "Counts site URLs from the metadata corpus grouped by TLD of each URL."
   [arc-item-tap trap-tap]
   (<- [?tagline ?count]
-      (arc-item-tap :> ?url ?item)
+      (cc/arc-item-tap :> ?url ?item)
       (parse-hostname ?url :> ?host)
       (is-metafilter? ?host)
       (cc/item-text :< ?item :> ?html)
@@ -131,4 +137,4 @@
   (let [arc-item-tap (cc/hfs-arc-item-tap (cc/arc-path prefix valid-segments))
         trap-tap (hfs-seqfile (str output-dir ".trap"))]
     (?- (hfs-textline output-dir)
-        (query-taglines arc-item-tap trap-tap))))
+        (query-arc-taglines arc-item-tap trap-tap))))

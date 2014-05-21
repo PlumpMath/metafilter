@@ -7,6 +7,7 @@
             [clojure.reflect :as reflect]
             [clojure.test :refer :all]
             [com.lemonodor.commoncrawl :as cc]
+            [com.lemonodor.xio :as xio]
             [midje.cascalog :refer :all]
             [midje.sweet :refer :all]))
 
@@ -17,7 +18,6 @@
     :name
     (filter :exception-types (:members (reflect/reflect item)))))
   true)
-
 
 
 (deftest path-tests
@@ -65,6 +65,16 @@
     (cc/arc-path "some-prefix" [1 2 3])
     =>
     "some-prefix/{1,2,3}/*.arc.gz"))
+
+
+(deftest arc-file-tests
+  (testing "create arc item"
+    (let [item (cc/arc-file-item-from-bytes
+                "WAT"
+                (xio/binary-slurp (io/resource "metafilter.arc")))]
+      (is (= (cc/item-mime-type item) "text/html"))
+      (is (= (subs (cc/item-text item) 0 30) "<!DOCTYPE HTML PUBLIC \"-//W3C/")))))
+
 
 (deftest arc-tests
   (fact "ARC tap"

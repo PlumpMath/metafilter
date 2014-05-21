@@ -2,9 +2,12 @@
   (:require [cascalog.cascading.tap :as tap]
             [clojure.string :as string])
   (:import (com.lemonodor.cascading.scheme ARC ARCItem)
-           (org.apache.hadoop.io BytesWritable)
+           (java.util Arrays)
+           (org.apache.hadoop.io BytesWritable Text)
+           (org.commoncrawl.crawl.common.shared Constants)
+           (org.commoncrawl.io.shared NIOHttpHeaders)
            (org.commoncrawl.protocol.shared ArcFileItem)
-           (org.commoncrawl.util.shared ImmutableBuffer)))
+           (org.commoncrawl.util.shared ArcFileItemUtils ByteArrayUtils FlexBuffer ImmutableBuffer TextBytes)))
 
 
 ;; Discussion about valid segments:
@@ -60,6 +63,37 @@
   ([prefix]
      (arc-path prefix valid-segments)))
 
+
+(defn arc-file-item-from-bytes [^String url ^bytes bytes]
+  (let [^ArcFileItem item (ArcFileItem.)
+        ^BytesWritable bw (BytesWritable. bytes)
+        crlf-index
+        (ByteArrayUtils/indexOf bytes 0 (count bytes) (.getBytes "\r\n\r\n"))
+        header-len (+ crlf-index 4)
+        content-len (- (count bytes) header-len)
+        header-str (.toString (TextBytes. bytes 0 header-len true))
+        _ (println "AHH" header-str)
+        ^NIOHttpHeaders headers (NIOHttpHeaders/parseHttpHeaders header-str)]
+    (.clear item)
+    (.set (.getUriAsTextBytes item) (Text. url) true)
+    (when-let [host-ip (.findValue headers Constants/ARCFileHeader_HostIP)]
+      (.setHostIP item host-ip))
+    (if-let [mime-type (.findValue headers Constants/ARCFileHeader_ARC_MimeType)]
+      (.setMimeType item mime-type)
+      (.setMimeType item "text/html"))
+    (.setRecordLength item (count bytes))
+    ;; arcFileItem.setContent(new FlexBuffer(rawArcPayload.getBytes(),headerLen,contentLen,true));
+    (println "NAH"(count bytes) header-len content-len)
+    (.setContent
+     item
+     (FlexBuffer.
+      (Arrays/copyOfRange bytes header-len content-len)
+      0 (- content-len header-len) true))
+    item))
+
+
+(defn arc-item-tap
+  [])
 
 (defn hfs-arc-tap
   [path & opts]

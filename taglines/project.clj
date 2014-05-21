@@ -7,7 +7,9 @@
   :dependencies [[cascalog "2.1.0"]
                  [clojure-opennlp "0.3.2"]
                  [clojurewerkz/crawlista "1.0.0-alpha18"]
+                 [com.lemonodor/xio "0.2.0"]
                  [enlive "1.1.5"]
+                 [me.raynes/fs "1.4.4"]
                  [org.clojure/clojure "1.5.1"]
                  [org.commoncrawl/libcommoncrawl "1.1"
                   :exclusions [org.slf4j/slf4j-api]]]
@@ -19,4 +21,8 @@
   :java-source-paths ["src/java"]
   :jar-name "metafilter-taglines.jar"
   :uberjar-name "metafilter-taglines-standalone.jar"
-  :aot [com.lemonodor.metafilter.taglines])
+  :javac-options ["-target" "1.6" "-source" "1.6"]
+  :jvm-opts ^:replace ["-Xmx2g" "-server"]
+  :main com.lemonodor.metafilter.taglines-tool
+  :aot [com.lemonodor.metafilter.taglines
+        com.lemonodor.metafilter.taglines-tool])
