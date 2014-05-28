@@ -12,14 +12,6 @@
             [midje.sweet :refer :all]))
 
 
-(defn print-methods [item]
-  (pprint/print-table
-   (sort-by
-    :name
-    (filter :exception-types (:members (reflect/reflect item)))))
-  true)
-
-
 (deftest path-tests
   (fact "default text-paths"
     (cc/text-path
@@ -71,7 +63,7 @@
   (testing "create arc item"
     (let [item (cc/arc-file-item-from-bytes
                 "WAT"
-                (xio/binary-slurp (io/resource "metafilter.arc")))]
+                (xio/binary-slurp (io/resource "metafilter.farc")))]
       (is (= (cc/item-mime-type item) "text/html"))
       (is (= (subs (cc/item-text item) 0 30) "<!DOCTYPE HTML PUBLIC \"-//W3C/")))))
 
@@ -141,14 +133,3 @@
       ["<html>\r\n\r\n<head>\r\n<title>"]
       ["<html>\r\n\r\n<head>\r\n<title>"]
       ["<html>\r\n\r\n<head>\r\n<title>"]])))
-
-
-(deftest another-test
-  (fact "aggregator?"
-    (let [tap [["1" "a"]
-               ["1" "b"]
-               ["2" "c"]]]
-      (<- [?url ?word]
-          (tap :> ?url ?word))
-      =>
-      (produces [[]]))))
