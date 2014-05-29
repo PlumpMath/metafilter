@@ -1,15 +1,21 @@
 (ns com.lemonodor.commoncrawl
   (:require [cascalog.cascading.tap :as tap]
-            [clojure.string :as string])
+            [clojure.pprint :as pprint]
+            [clojure.reflect :as reflect]
+            [clojure.string :as string]
+            [com.lemonodor.xio :as xio]
+            [me.raynes.fs :as fs])
   (:import (com.lemonodor.cascading.scheme ARC ARCItem)
+           (java.text SimpleDateFormat)
            (java.util Arrays)
            (org.apache.hadoop.io BytesWritable Text)
            (org.commoncrawl.crawl.common.shared Constants)
            (org.commoncrawl.io.shared NIOHttpHeaders)
-           (org.commoncrawl.protocol.shared ArcFileItem)
+           (org.commoncrawl.protocol.shared ArcFileItem ArcFileHeaderItem)
            (org.commoncrawl.util.shared ByteArrayUtils FlexBuffer
                                         ImmutableBuffer TextBytes)))
 
+(set! *warn-on-reflection* true)
 
 ;; Discussion about valid segments:
 ;; https://groups.google.com/forum/#!topic/common-crawl/QYTmnttZZyo/discussion
@@ -43,12 +49,16 @@
    1346981172255 1346981172258 1346981172261 1346981172264 1346981172266
    1346981172268))
 
+
 (defn ^String text-path
   "Produces the glob of paths to text files organized according to
-   CommonCrawl docs: http://tinyurl.com/common-crawl-about-dataset
+   CommonCrawl docs:
+   https://commoncrawl.atlassian.net/wiki/display/CRWL/About+the+Data+Set
+
    Here's an example (assuming valid segments are 1, 2 and 3):
-   (text-path 's3://path/to/commoncrawl/segments')
-   => 's3://path/to/commoncrawl/segments/{1,2,3}/textData*'"
+
+   (text-path \"s3://path/to/commoncrawl/segments\")
+   => \"s3://path/to/commoncrawl/segments/{1,2,3}/textData*\""
   ([prefix segments]
      (->> segments
           (string/join ",")
@@ -56,7 +66,16 @@
   ([prefix]
      (text-path prefix valid-segments)))
 
+
 (defn ^String arc-path
+  "Produces the glob of paths to ARC raw content files organized
+   according to CommonCrawl docs:
+   https://commoncrawl.atlassian.net/wiki/display/CRWL/About+the+Data+Set
+
+   Here's an example (assuming valid segments are 1, 2 and 3):
+
+   (arc-path \"s3://path/to/commoncrawl/segments\")
+   => \"s3://path/to/commoncrawl/segments/{1,2,3}/*.arc.gz\""
   ([prefix segments]
      (->> segments
           (string/join ",")
@@ -65,26 +84,58 @@
      (arc-path prefix valid-segments)))
 
 
-(defn arc-file-item-from-bytes [^String url ^bytes bytes]
-  (let [^ArcFileItem item (ArcFileItem.)
-        ^BytesWritable bw (BytesWritable. bytes)
+(def ^SimpleDateFormat timestamp14 (SimpleDateFormat. "yyyyMMddHHmmss"))
+
+(defn afi-bytes-metadata [^bytes bytes]
+  (let [newline-index (ByteArrayUtils/indexOf
+                       bytes 0 (count bytes) (.getBytes "\n"))
+        line (.toString (TextBytes. bytes 0 newline-index true))
+        pieces (string/split line #" ")]
+    (update-in
+     (apply assoc {}
+            (interleave [:url :host-ip :timestamp :mime-type :size] pieces))
+     [:timestamp]
+     #(.getTime (.parse timestamp14 %)))))
+
+
+
+(defn print-methods [item]
+  (pprint/print-table
+   (sort-by
+    :name
+    (filter :exception-types (:members (reflect/reflect item)))))
+  true)
+
+
+(defn headers-map [^NIOHttpHeaders headers]
+  (into {}
+        (for [^int i (range (.getKeyCount headers))]
+          [(.getKey headers i) (.getValue headers i)])))
+
+;; See https://github.com/commoncrawl/commoncrawl/blob/master/src/main/java/org/commoncrawl/util/shared/ArcFileItemUtils.java#L44
+
+(defn arc-file-item-from-bytes
+  "Reconstitutes a single ARC file item from raw bytes."
+  [^bytes bytes]
+  (let [metadata (afi-bytes-metadata bytes)
+        ^ArcFileItem item (ArcFileItem.)
         crlf-index
         (ByteArrayUtils/indexOf bytes 0 (count bytes) (.getBytes "\r\n\r\n"))
         header-len (+ crlf-index 4)
         content-len (- (count bytes) header-len)
         header-str (.toString (TextBytes. bytes 0 header-len true))
-        _ (println "AHH" header-str)
         ^NIOHttpHeaders headers (NIOHttpHeaders/parseHttpHeaders header-str)]
     (.clear item)
-    (.set (.getUriAsTextBytes item) (Text. url) true)
-    (when-let [host-ip (.findValue headers Constants/ARCFileHeader_HostIP)]
-      (.setHostIP item host-ip))
-    (if-let [mime-type (.findValue headers Constants/ARCFileHeader_ARC_MimeType)]
-      (.setMimeType item mime-type)
-      (.setMimeType item "text/html"))
+    (.set (.getUriAsTextBytes item) (Text. ^String (:url metadata)) true)
+    (.setHostIP item (:host-ip metadata))
+    (.setMimeType item (:mime-type metadata))
+    (.setTimestamp item (:timestamp metadata))
     (.setRecordLength item (count bytes))
-    ;; arcFileItem.setContent(new FlexBuffer(rawArcPayload.getBytes(),headerLen,contentLen,true));
-    (println "NAH"(count bytes) header-len content-len)
+    (doseq [[k v] (headers-map headers)]
+      (.add (.getHeaderItems item)
+            (doto (ArcFileHeaderItem.)
+              (.setItemKey (or k ""))
+              (.setItemValue (or v "")))))
     (.setContent
      item
      (FlexBuffer.
@@ -93,28 +144,69 @@
     item))
 
 
-(defn arc-item-tap
-  [])
+(defn file-item [^bytes bytes]
+  (let [metadata (afi-bytes-metadata bytes)
+        crlf-index
+        (ByteArrayUtils/indexOf bytes 0 (count bytes) (.getBytes "\r\n\r\n"))
+        header-len (+ crlf-index 4)
+        content-len (- (count bytes) header-len)
+        ^NIOHttpHeaders headers (NIOHttpHeaders/parseHttpHeaders
+                                 (.toString
+                                  (TextBytes. bytes 0 header-len true)))]
+    (assoc metadata
+      :record-length (count bytes)
+      :headers (headers-map headers)
+      :content (Arrays/copyOfRange bytes header-len content-len))))
 
-(defn hfs-arc-tap
-  [path & opts]
-  (let [scheme (ARC.)]
-    (apply tap/hfs-tap scheme path opts)))
 
 (defn hfs-arc-item-tap
+  "Tap that sources ARC file items from Common Crawl segment files."
   [path & opts]
   (let [scheme (ARCItem.)]
     (apply tap/hfs-tap scheme path opts)))
 
- (defn item-mime-type [^ArcFileItem item]
+
+(defn file-item-tap
+  [path]
+  (->> (fs/glob path)
+       (map xio/binary-slurp)
+       (map file-item)))
+
+
+ (defn arc-file-item-mime-type [^ArcFileItem item]
    (.getMimeType item))
 
-(defn item-text
+ (defn arc-file-item-host-ip [^ArcFileItem item]
+   (.getHostIP item))
+
+ (defn arc-file-item-record-length [^ArcFileItem item]
+   (.getRecordLength item))
+
+ (defn arc-file-item-timestamp [^ArcFileItem item]
+   (.getTimestamp item))
+
+(defn guess-afi-encoding [^ArcFileItem item]
+  (first
+   (map (fn [^ArcFileHeaderItem h]
+          (.getItemValue h))
+        (filter
+         (fn [^ArcFileHeaderItem h]
+           (= (.getItemKey h) "x-commoncrawl-DetectedCharset"))
+         (.getHeaderItems item)))))
+
+(defn arc-file-item-text
   ([^ArcFileItem item ^String encoding]
      (let [^ImmutableBuffer content (.getContent item)]
        (String. (.getReadOnlyBytes content) 0 (.getCount content) encoding)))
   ([^ArcFileItem item]
-     (item-text item "UTF8")))
+     (arc-file-item-text
+      item
+      (or (guess-afi-encoding item) "UTF8"))))
 
-(defn bytes-to-string [^BytesWritable bytes]
-  (String. (.getBytes bytes) "UTF8"))
+(defn file-item-text
+  ([item ^String encoding]
+     (String. ^bytes (:content item) encoding))
+  ([item]
+     (file-item-text
+      item
+      (or ((:headers item) "x-commoncrawl-DetectedCharset") "UTF8"))))

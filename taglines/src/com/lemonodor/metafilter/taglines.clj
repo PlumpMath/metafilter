@@ -118,7 +118,7 @@
   "Counts site URLs from the metadata corpus grouped by TLD of each URL."
   [arc-item-tap trap-tap]
   (<- [?tagline ?count]
-      (cc/arc-item-tap :> ?url ?item)
+      (arc-item-tap :> ?url ?item)
       (parse-hostname ?url :> ?host)
       (is-metafilter? ?host)
       (cc/item-text :< ?item :> ?html)

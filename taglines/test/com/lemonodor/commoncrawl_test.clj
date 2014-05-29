@@ -56,13 +56,26 @@
     "some-prefix/{1,2,3}/*.arc.gz"))
 
 
-(deftest arc-file-tests
-  (testing "create arc item"
+(deftest arc-file-item-from-bytes-tests
+  (testing "create arc file item from bytes"
     (let [item (cc/arc-file-item-from-bytes
-                "WAT"
                 (xio/binary-slurp (io/resource "metafilter.farc")))]
-      (is (= (cc/item-mime-type item) "text/html"))
-      (is (= (subs (cc/item-text item) 0 30) "<!DOCTYPE HTML PUBLIC \"-//W3C/")))))
+      (is (= (cc/arc-file-item-host-ip item) "50.22.177.14"))
+      (is (= (cc/arc-file-item-timestamp item) 1337191501000))
+      (is (= (cc/arc-file-item-record-length item) 66060))
+      (is (= (cc/arc-file-item-mime-type item) "text/html"))
+      (is (= (subs (cc/arc-file-item-text item) 0 30) "<!DOCTYPE HTML PUBLIC \"-//W3C/")))))
+
+
+(deftest file-item-tests
+  (testing "create file item"
+    (let [item (cc/file-item
+                (xio/binary-slurp (io/resource "metafilter.farc")))]
+      (is (= (:host-ip item) "50.22.177.14"))
+      (is (= (:timestamp item) 1337191501000))
+      (is (= (:record-length item) 66060))
+      (is (= (:mime-type item) "text/html"))
+      (is (= (subs (cc/file-item-text item) 0 30) "<!DOCTYPE HTML PUBLIC \"-//W3C/")))))
 
 
 (deftest arc-tests
@@ -93,7 +106,7 @@
         ((cc/hfs-arc-item-tap
           (io/file (io/resource "1262847572760_10.arc.gz")))
          ?url ?arcitem)
-        (cc/item-mime-type ?arcitem :> ?mimetype)
+        (cc/arc-file-item-mime-type ?arcitem :> ?mimetype)
         (c/count :> ?n)
         )
     =>
@@ -120,7 +133,7 @@
            (io/file (io/resource "1262847572760_10.arc.gz")))
           5)
          ?url ?arcitem)
-        (cc/item-text :< ?arcitem :> ?body)
+        (cc/arc-file-item-text :< ?arcitem :> ?body)
         (subs ?body 0 25 :> ?prefix)
         )
     =>
