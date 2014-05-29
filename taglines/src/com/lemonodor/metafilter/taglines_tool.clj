@@ -1,13 +1,11 @@
 (ns com.lemonodor.metafilter.taglines-tool
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
-            [clojurewerkz.crawlista.extraction.content :as content]
-            [com.lemonodor.commoncrawl :as cc]
+            [me.raynes.fs :as fs]
             [net.cgrand.enlive-html :as html]
-            [opennlp.nlp :as opennlp]
-            [me.raynes.fs :as fs])
+            [opennlp.nlp :as opennlp])
   (:import (java.io ByteArrayOutputStream)
-           (java.util.zip ZipFile GZIPInputStream))
+           (java.util.zip GZIPInputStream))
   (:gen-class))
 
 

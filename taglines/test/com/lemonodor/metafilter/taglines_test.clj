@@ -1,10 +1,9 @@
 (ns com.lemonodor.metafilter.taglines-test
-(:require [cascalog.logic.testing :refer :all]
-          [clojure.java.io :as io]
-          [clojure.test :refer :all]
-          [com.lemonodor.metafilter.taglines :as taglines]
-          [midje.cascalog :refer :all]
-          [midje.sweet :refer :all])
+  (:require [cascalog.logic.testing :refer :all]
+            [clojure.java.io :as io]
+            [clojure.test :refer :all]
+            [com.lemonodor.metafilter.taglines :as taglines]
+            [midje.sweet :refer :all])
   (:import (org.apache.hadoop.io Text)))
 
 

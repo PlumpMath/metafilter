@@ -1,10 +1,7 @@
 (ns com.lemonodor.commoncrawl-test
   (:require [cascalog.api :refer :all]
             [cascalog.logic.ops :as c]
-            [cascalog.logic.testing :refer :all]
             [clojure.java.io :as io]
-            [clojure.pprint :as pprint]
-            [clojure.reflect :as reflect]
             [clojure.test :refer :all]
             [com.lemonodor.commoncrawl :as cc]
             [com.lemonodor.xio :as xio]

@@ -1,18 +1,14 @@
 (ns com.lemonodor.metafilter.taglines
   (:require [cascalog.api :refer :all]
-            [cascalog.cascading.tap :as tap]
             [cascalog.logic.def :as def]
             [cascalog.logic.ops :as c]
-            [cascalog.more-taps :refer [hfs-wrtseqfile]]
             [clojure.java.io :as io]
             [clojure.string :as string]
-            [clojurewerkz.crawlista.extraction.content :as content]
             [com.lemonodor.commoncrawl :as cc]
             [net.cgrand.enlive-html :as html]
-            [opennlp.nlp :as opennlp]
-            [me.raynes.fs :as fs])
+            [opennlp.nlp :as opennlp])
   (:import (org.apache.commons.httpclient URI)
-           (org.apache.hadoop.io BytesWritable Text))
+           (org.apache.hadoop.io Text))
   (:gen-class))
 
 

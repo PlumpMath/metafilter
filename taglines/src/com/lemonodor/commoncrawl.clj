@@ -7,7 +7,8 @@
            (org.commoncrawl.crawl.common.shared Constants)
            (org.commoncrawl.io.shared NIOHttpHeaders)
            (org.commoncrawl.protocol.shared ArcFileItem)
-           (org.commoncrawl.util.shared ArcFileItemUtils ByteArrayUtils FlexBuffer ImmutableBuffer TextBytes)))
+           (org.commoncrawl.util.shared ByteArrayUtils FlexBuffer
+                                        ImmutableBuffer TextBytes)))
 
 
 ;; Discussion about valid segments:
